@@ -1,0 +1,3 @@
+[submodule "spikeinterface"]
+	path = spikeinterface
+	url = https://github.com/SpikeInterface/spikeinterface.git

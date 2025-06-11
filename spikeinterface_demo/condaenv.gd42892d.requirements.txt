@@ -1,0 +1,7 @@
+ephyviewer
+MEArec
+spikeinterface[full,widgets]
+spikeinterface-gui
+tridesclous
+pooch
+datalab
