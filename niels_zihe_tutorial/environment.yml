@@ -1,0 +1,12 @@
+name: skibidi_env
+channels:
+  - conda-forge
+dependencies:
+  - python>3.10
+  - pip
+  - conda
+  - numpy>=1.20.0
+  - pip:
+    - spikeinterface[full, widgets, extractors]==0.102.3
+    - matplotlib
+  
