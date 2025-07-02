@@ -1,0 +1,80 @@
+NEO PATCH NOTES
+===============
+
+Date: [Current Date]
+File Patched: /opt/anaconda3/envs/si_env/lib/python3.11/site-packages/neo/rawio/blackrockrawio.py
+Line: ~648
+
+PROBLEM
+-------
+When reading Blackrock (.ns6) files with only a single channel, the Neo BlackrockRawIO 
+encountered an IndexError:
+
+"IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed"
+
+This occurred in the _get_analogsignal_chunk method when trying to access memmap_data 
+with 2D indexing: memmap_data[i_start:i_stop, channel_indexes]
+
+For single-channel files, memmap_data is 1-dimensional, but the code was trying to 
+index it as if it were 2-dimensional.
+
+ROOT CAUSE
+----------
+The BlackrockRawIO._get_analogsignal_chunk method assumes that memmap_data is always 
+2-dimensional (samples x channels), but for single-channel recordings, the memmap_data 
+is actually 1-dimensional (just samples).
+
+The problematic line was:
+    sig_chunk = memmap_data[i_start:i_stop, channel_indexes]
+
+SOLUTION
+--------
+Modified the _get_analogsignal_chunk method to handle both 1D and 2D memmap_data:
+
+BEFORE:
+    if channel_indexes is None:
+        channel_indexes = slice(None)
+    sig_chunk = memmap_data[i_start:i_stop, channel_indexes]
+    return sig_chunk
+
+AFTER:
+    if channel_indexes is None:
+        channel_indexes = slice(None)
+    # PATCH: handle single-channel (1D) memmap_data
+    if memmap_data.ndim == 1:
+        sig_chunk = memmap_data[i_start:i_stop]
+    else:
+        sig_chunk = memmap_data[i_start:i_stop, channel_indexes]
+    return sig_chunk
+
+IMPACT
+------
+This patch allows SpikeInterface to successfully read single-channel Blackrock files 
+without errors. The fix is backward compatible - it still works correctly for 
+multi-channel files.
+
+LIMITATIONS
+----------
+- This is a local patch to your conda environment
+- The patch will be lost if you reinstall Neo
+- This should be reported as a bug to the Neo project for a permanent fix
+
+RECOMMENDATIONS
+--------------
+1. Report this bug to the Neo project: https://github.com/NeuralEnsemble/python-neo/issues
+2. Consider using multi-channel recordings when possible for better spike sorting
+3. If you need to work with single-channel files, this patch provides a working solution
+
+ALTERNATIVE SOLUTIONS
+--------------------
+1. Convert single-channel files to multi-channel format
+2. Use a different file format that handles single-channel data better
+3. Use a different version of Neo that may have fixed this issue
+4. Use SpikeInterface's built-in extractors that may handle this case better
+
+NOTES
+-----
+This patch was necessary because the original SpikeInterface demo script was designed 
+for multi-channel recordings, but the user's Blackrock file contained only one channel.
+The patch allows the demo to run successfully with single-channel data, though some 
+features (like multi-channel metrics) may be limited. 
